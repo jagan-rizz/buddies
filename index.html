@@ -1,0 +1,101 @@
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.1.3/firebase-database.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.3/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAVuo1h9au1tb2mglsHZo5g9MezVJo9LvQ",
+      authDomain: "buddies-cc52a.firebaseapp.com",
+      databaseURL: "https://buddies-cc52a-default-rtdb.firebaseio.com",
+      projectId: "buddies-cc52a",
+      storageBucket: "buddies-cc52a.appspot.com",
+      messagingSenderId: "105608998421",
+      appId: "1:105608998421:android:8a3a6d559160fb37bda81c"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+
+    // Google Sign-In
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('googleSignInButton').addEventListener('click', () => {
+        signInWithPopup(auth, provider)
+          .then((result) => {
+            currentUser = result.user;
+            document.getElementById('userName').textContent = `Hello, ${currentUser.displayName}`;
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      });
+
+      // Send message to Firebase
+      document.getElementById('sendButton').addEventListener('click', () => {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value;
+        if (message && currentUser) {
+          push(ref(database, 'messages'), {
+            "message": message,
+            "sender": currentUser.displayName
+          });
+          messageInput.value = '';
+        }
+      });
+
+      // Listen for new messages
+      onChildAdded(ref(database, 'messages'), (snapshot) => {
+        const messageData = snapshot.val();
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('rounded-lg', 'p-2', 'mb-2', 'max-w-xs');
+        if (messageData.sender === currentUser.displayName) {
+          messageElement.classList.add('bg-green-200', 'self-end');
+        } else {
+          messageElement.classList.add('bg-gray-200', 'self-start');
+        }
+        messageElement.textContent = `${messageData.sender}: ${messageData.message}`;
+        document.getElementById('chatWindow').appendChild(messageElement);
+        document.getElementById('chatWindow').scrollTop = document.getElementById('chatWindow').scrollHeight;
+      });
+    });
+  </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white rounded-lg shadow-lg w-96 h-full flex flex-col">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <i class="fas fa-star text-green-500 mr-2"></i>
+        <span class="font-semibold text-lg">AI Assist</span>
+      </div>
+      <i class="fas fa-times text-gray-500 cursor-pointer"></i>
+    </div>
+    <div id="chatWindow" class="flex-1 p-4 overflow-y-auto">
+      <!-- Messages will be appended here -->
+    </div>
+    <div class="p-4 border-t border-gray-200">
+      <div class="flex items-center">
+        <input id="messageInput" class="w-full border border-gray-300 rounded-full py-2 px-4 focus:outline-none" placeholder="Type a message..." type="text"/>
+        <button id="sendButton" class="ml-2 text-green-500">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+    <div class="p-4 border-t border-gray-200">
+      <button id="googleSignInButton" class="bg-blue-500 text-white py-2 px-4 rounded-full w-full">
+        Sign in with Google
+      </button>
+      <p id="userName" class="mt-2 text-center text-gray-700"></p>
+    </div>
+  </div>
+</body>
+</html>
